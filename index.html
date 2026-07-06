@@ -562,19 +562,6 @@ function renderCost() {
 }
 $("cpinput").addEventListener("input", () => { autoConverted = false; renderCost(); });
 
-// 공유 링크로 접속 시 상태 복원 (스크립트 최하단: 모든 선언 이후 실행)
-(function initFromHash() {
-  try {
-    const h = new URLSearchParams(location.hash.slice(1));
-    const k = h.get("p"), iv = h.get("iv");
-    if (k && iv) {
-      const [a, d, s] = iv.split("-").map(Number);
-      restoreState(k, a, d, s, h.get("cp"));
-    }
-  } catch (e) {}
-  renderRecent();
-})();
-
 // ---- nickname generator
 const SUP = { "0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹" };
 const sup = n => String(n).split("").map(c => SUP[c]).join("");
@@ -632,6 +619,18 @@ function copyText(t, row) {
     navigator.clipboard.writeText(t).then(done).catch(fallback);
   } else fallback();
 }
+
+// 공유 링크로 접속 시 상태 복원 — 반드시 스크립트 맨 마지막에 위치해야 함 (모든 const 초기화 이후)
+(function initFromHash() {
+  let parsed = null;
+  try {
+    const h = new URLSearchParams(location.hash.slice(1));
+    const k = h.get("p"), iv = h.get("iv");
+    if (k && iv) parsed = { k, ivArr: iv.split("-").map(Number), cp: h.get("cp") };
+  } catch (e) { /* 잘못된 해시는 무시 */ }
+  if (parsed) restoreState(parsed.k, parsed.ivArr[0], parsed.ivArr[1], parsed.ivArr[2], parsed.cp);
+  renderRecent();
+})();
 </script>
 </body>
 </html>
