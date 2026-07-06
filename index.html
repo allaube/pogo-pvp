@@ -1,10 +1,16 @@
 <!DOCTYPE html>
-<!-- build 2026-07-06b -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>포켓몬고 PVP 계산기</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#f3f5f9">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="PVP 계산기">
 <style>
   :root {
     --bg: #f3f5f9; --card: #ffffff; --ink: #26324e; --sub: #68738a;
@@ -632,6 +638,11 @@ function copyText(t, row) {
   if (parsed) restoreState(parsed.k, parsed.ivArr[0], parsed.ivArr[1], parsed.ivArr[2], parsed.cp);
   renderRecent();
 })();
+
+// PWA 서비스워커 등록 (https에서만 — 로컬 파일로 열 땐 무시됨)
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
 </script>
 </body>
 </html>
