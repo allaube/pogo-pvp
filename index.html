@@ -251,6 +251,8 @@ const STATUS = [
   { name: "정화", d: 0.9, c: 0.9 }
 ];
 let statusIdx = 0;
+let recognizedLevel = null; // CP로 인식된 현재 레벨 (진화 이동 시 유지)
+let autoConverted = false;  // 진화 이동으로 CP가 자동 환산되었는지
 
 // ---- state
 let cur = null, ivs = { atk: null, def: null, sta: null };
@@ -274,6 +276,7 @@ sugEl.addEventListener("click", e => {
   const item = e.target.closest(".sitem");
   if (!item) return;
   cur = MONS[+item.dataset.i];
+  autoConverted = false; recognizedLevel = null; $("cpinput").value = ""; // 다른 포켓몬 검색 시 CP 초기화
   searchEl.value = cur.name;
   sugEl.style.display = "none";
   const p = $("picked");
@@ -378,11 +381,20 @@ function renderEvolutions() {
     return '<div class="evorow" data-key="' + m.key + '"><div class="evoname">' + m.name + '</div><div class="evoranks">' + badges + '</div></div>';
   }).join("");
   [...listEl.children].forEach(row => {
-    row.addEventListener("click", () => selectMon(MON_INDEX[row.dataset.key]));
+    row.addEventListener("click", () => selectMon(MON_INDEX[row.dataset.key], true));
   });
 }
-function selectMon(m) {
+function selectMon(m, keepLevel) {
   if (!m) return;
+  // 진화 이동 시: 인식된 레벨 유지 → 진화형의 해당 레벨 CP를 자동 환산해 입력
+  if (keepLevel && recognizedLevel !== null && ivs.atk !== null) {
+    const idx = Math.round((recognizedLevel - 1) * 2);
+    $("cpinput").value = cpOf(m, ivs.atk, ivs.def, ivs.sta, idx);
+    autoConverted = true;
+  } else {
+    $("cpinput").value = "";
+    autoConverted = false;
+  }
   cur = m;
   searchEl.value = m.name;
   const p = $("picked");
@@ -405,8 +417,9 @@ function renderCost() {
   const cpVal = parseInt($("cpinput").value, 10);
   const state = $("cpstate"), listEl = $("costlist");
   if (!cpVal) {
+    recognizedLevel = null;
     state.className = "cpstate";
-    state.textContent = "CP를 입력하면 레벨을 자동 인식해 리그별 강화 비용을 계산합니다";
+    state.textContent = "CP를 입력하면 레벨을 자동 인식해 리그별 강화 비용을 계산합니다. 진화형을 탭해 이동하면 CP가 자동 환산돼요.";
     listEl.innerHTML = "";
     return;
   }
@@ -416,14 +429,17 @@ function renderCost() {
     if (cpOf(cur, ivs.atk, ivs.def, ivs.sta, idx) === cpVal) matches.push(1 + idx / 2);
   }
   if (!matches.length) {
+    recognizedLevel = null;
     state.className = "cpstate err";
     state.textContent = "이 개체값으로는 나올 수 없는 CP입니다 — CP 또는 개체값을 다시 확인하세요";
     listEl.innerHTML = "";
     return;
   }
   const curLevel = matches[0];
+  recognizedLevel = curLevel;
   state.className = "cpstate";
-  state.textContent = "인식된 현재 레벨: Lv " + matches.join(" 또는 Lv ") + (matches.length > 1 ? " (낮은 쪽 기준으로 계산)" : "");
+  state.textContent = "인식된 현재 레벨: Lv " + matches.join(" 또는 Lv ") + (matches.length > 1 ? " (낮은 쪽 기준으로 계산)" : "") +
+    (autoConverted ? " — 진화 전 CP에서 자동 환산됨 (진화해도 레벨·개체값은 유지)" : "");
   const st = STATUS[statusIdx];
   const fmt = n => n.toLocaleString("ko-KR");
   listEl.innerHTML = lastLeagues.map(lg => {
@@ -440,7 +456,7 @@ function renderCost() {
     return '<div class="costrow"><span class="costbadge ' + lg.cls + '">' + lg.name.replace("리그", "") + '</span><span class="costinfo">' + body + '</span></div>';
   }).join("");
 }
-$("cpinput").addEventListener("input", renderCost);
+$("cpinput").addEventListener("input", () => { autoConverted = false; renderCost(); });
 
 // ---- nickname generator
 const SUP = { "0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹" };
